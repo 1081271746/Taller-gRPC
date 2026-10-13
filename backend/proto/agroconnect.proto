@@ -1,0 +1,44 @@
+
+syntax = "proto3";
+
+package agroconnect;
+
+// Represents an agricultural sensor reading.
+message SensorReading {
+  string sensor_id = 1;
+  string crop_id = 2;
+  double soil_moisture = 3;
+  double temperature = 4;
+  double air_humidity = 5;
+  int64 timestamp = 6;
+}
+
+// Represents an agricultural alert.
+message AgriculturalAlert {
+  string alert_type = 1;
+  string severity = 2;
+  string message = 3;
+}
+
+// Response returned after processing a reading.
+message ReadingResponse {
+  bool success = 1;
+  string message = 2;
+  string reading_id = 3;
+  repeated AgriculturalAlert alerts = 4;
+}
+
+// Service responsible for processing sensor readings.
+service AgroConnectService {
+  rpc SendReading(SensorReading) returns (ReadingResponse);
+}
+
+
+message AlertResponse {
+  repeated AgriculturalAlert alerts = 1;
+}
+
+service AlertService {
+  rpc EvaluateReading(SensorReading) returns (AlertResponse);
+}
+
