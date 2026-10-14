@@ -1,0 +1,92 @@
+
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${PGDATABASE:-agroconnect_db}
+      POSTGRES_USER: ${PGUSER:-postgres}
+      POSTGRES_PASSWORD: ${PGPASSWORD:?Define PGPASSWORD en .env}
+    ports:
+      - "5433:5432"
+    volumes:
+      - agroconnect_data:/var/lib/postgresql
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  alerts:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python services/alert_server.py
+    environment:
+      ALERT_SERVICE_HOST: alerts
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: ${PGDATABASE:-agroconnect_db}
+      PGUSER: ${PGUSER:-postgres}
+      PGPASSWORD: ${PGPASSWORD:?Define PGPASSWORD en .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    ports:
+      - "50052:50052"
+
+  grpc:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: python services/agroconnect_server.py
+    environment:
+      ALERT_SERVICE_HOST: alerts
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: ${PGDATABASE:-agroconnect_db}
+      PGUSER: ${PGUSER:-postgres}
+      PGPASSWORD: ${PGPASSWORD:?Define PGPASSWORD en .env}
+    depends_on:
+      db:
+        condition: service_healthy
+      alerts:
+        condition: service_started
+    restart: unless-stopped
+    ports:
+      - "50051:50051"
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: uvicorn web_api:app --host 0.0.0.0 --port 8000
+    environment:
+      PGHOST: db
+      PGPORT: 5432
+      PGDATABASE: ${PGDATABASE:-agroconnect_db}
+      PGUSER: ${PGUSER:-postgres}
+      PGPASSWORD: ${PGPASSWORD:?Define PGPASSWORD en .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - api
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+
+volumes:
+  agroconnect_data:

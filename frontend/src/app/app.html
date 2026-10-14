@@ -1,0 +1,351 @@
+
+<div class="app-shell">
+  <aside class="sidebar" [class.sidebar-open]="mobileMenuOpen">
+    <a class="brand" href="#dashboard" (click)="navigate('dashboard')">
+      <div class="brand-mark">A<span>+</span></div>
+      <div class="brand-copy">
+        <strong>AgroConnect</strong>
+        <span>SMART AGRICULTURE</span>
+      </div>
+    </a>
+
+    <div class="workspace-label">ESPACIO DE TRABAJO</div>
+
+    <nav class="navigation">
+      <button class="nav-item" [class.active]="activeSection === 'dashboard'"
+        (click)="navigate('dashboard')">
+        <span class="nav-icon">◫</span>
+        <span>Panel general</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeSection === 'readings'"
+        (click)="navigate('readings')">
+        <span class="nav-icon">⌁</span>
+        <span>Lecturas de sensores</span>
+        <span class="nav-count">{{ readings.length }}</span>
+      </button>
+
+      <button class="nav-item" [class.active]="activeSection === 'alerts'"
+        (click)="navigate('alerts')">
+        <span class="nav-icon">♧</span>
+        <span>Alertas agrícolas</span>
+        <span class="nav-count alert-count" *ngIf="stats.total_alerts > 0">
+          {{ stats.total_alerts }}
+        </span>
+      </button>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <div class="connection-card">
+        <span class="connection-dot"></span>
+        <div>
+          <strong>API AgroConnect</strong>
+          <small>{{ errorMessage ? 'Sin conexión' : (loading ? 'Verificando...' : 'Conectada') }}</small>
+        </div>
+      </div>
+
+      <div class="profile">
+        <div class="avatar">AC</div>
+        <div class="profile-copy">
+          <strong>Administrador</strong>
+          <span>Centro de monitoreo</span>
+        </div>
+        <span class="profile-menu">•••</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content" id="dashboard">
+    <header class="topbar">
+      <button class="mobile-menu" (click)="mobileMenuOpen = !mobileMenuOpen"
+        aria-label="Abrir menú">☰</button>
+
+      <div class="breadcrumb">
+        <span>AgroConnect</span>
+        <span class="breadcrumb-separator">/</span>
+        <strong>Panel general</strong>
+      </div>
+
+      <div class="topbar-right">
+        <span class="live-indicator"><span></span> MONITOREO</span>
+        <div class="top-avatar">AC</div>
+      </div>
+    </header>
+
+    <section class="page-content">
+      <div class="welcome-row">
+        <div>
+          <div class="eyebrow"><span class="eyebrow-line"></span> AGRICULTURA INTELIGENTE</div>
+          <h1>Panel de monitoreo<span class="title-dot">.</span></h1>
+          <p class="page-subtitle">
+            Supervisa tus cultivos, analiza las condiciones y detecta riesgos a tiempo.
+          </p>
+        </div>
+
+        <button class="refresh-button" (click)="loadDashboard()" [disabled]="loading">
+          <span [class.spinning]="loading">↻</span>
+          {{ loading ? 'Actualizando...' : 'Actualizar datos' }}
+        </button>
+      </div>
+
+      <div class="status-banner">
+        <div class="status-banner-icon">✳</div>
+        <div class="status-banner-copy">
+          <strong>Tu campo, conectado.</strong>
+          <span>Los datos de sensores se consultan desde tu sistema AgroConnect.</span>
+        </div>
+        <div class="banner-updated">
+          <span>ÚLTIMA CONSULTA</span>
+          <strong>{{ lastUpdated | date:'dd MMM, HH:mm' }}</strong>
+        </div>
+      </div>
+
+      <div class="error-banner" *ngIf="errorMessage">
+        <span>!</span>
+        <div>
+          <strong>No pudimos cargar los datos</strong>
+          <p>{{ errorMessage }}</p>
+        </div>
+        <button (click)="loadDashboard()">Reintentar</button>
+      </div>
+
+      <div class="section-heading">
+        <div>
+          <h2>Resumen del cultivo</h2>
+          <p>Indicadores generales de tu operación agrícola</p>
+        </div>
+        <span class="data-badge"><span></span> DATOS DEL SISTEMA</span>
+      </div>
+
+      <div class="stats-grid">
+        <article class="stat-card">
+          <div class="stat-top">
+            <div class="stat-icon green-icon">⌁</div>
+            <span class="stat-tag">REGISTROS</span>
+          </div>
+          <div class="stat-value">{{ loading ? '...' : formatNumber(stats.total_readings) }}</div>
+          <div class="stat-label">Lecturas registradas</div>
+          <div class="stat-footer"><span class="mini-dot green-dot"></span> Datos almacenados en PostgreSQL</div>
+          <div class="stat-decoration decoration-green"></div>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-top">
+            <div class="stat-icon blue-icon">◉</div>
+            <span class="stat-tag">DISPOSITIVOS</span>
+          </div>
+          <div class="stat-value">{{ loading ? '...' : formatNumber(stats.total_sensors) }}</div>
+          <div class="stat-label">Sensores registrados</div>
+          <div class="stat-footer"><span class="mini-dot blue-dot"></span> Sensores con lecturas guardadas</div>
+          <div class="stat-decoration decoration-blue"></div>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-top">
+            <div class="stat-icon orange-icon">♨</div>
+            <span class="stat-tag">TEMPERATURA</span>
+          </div>
+          <div class="stat-value">
+            {{ loading ? '...' : formatNumber(stats.avg_temperature) }}<small *ngIf="stats.avg_temperature !== null">°C</small>
+          </div>
+          <div class="stat-label">Temperatura promedio</div>
+          <div class="stat-footer"><span class="mini-dot orange-dot"></span> Según las lecturas registradas</div>
+          <div class="stat-decoration decoration-orange"></div>
+        </article>
+
+        <article class="stat-card">
+          <div class="stat-top">
+            <div class="stat-icon purple-icon">⌁</div>
+            <span class="stat-tag">HUMEDAD DEL SUELO</span>
+          </div>
+          <div class="stat-value">
+            {{ loading ? '...' : formatNumber(stats.avg_soil_moisture) }}<small *ngIf="stats.avg_soil_moisture !== null">%</small>
+          </div>
+          <div class="stat-label">Humedad promedio del suelo</div>
+          <div class="stat-footer"><span class="mini-dot purple-dot"></span> Promedio de mediciones</div>
+          <div class="stat-decoration decoration-purple"></div>
+        </article>
+      </div>
+
+      <div class="dashboard-grid">
+        <section class="panel chart-panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-kicker">COMPORTAMIENTO RECIENTE</div>
+              <h2>Temperatura por lectura</h2>
+              <p>Últimas mediciones recibidas por el sistema</p>
+            </div>
+            <div class="chart-legend"><span></span> Temperatura °C</div>
+          </div>
+
+          <div class="chart-summary">
+            <strong>
+              {{ readings.length ? formatNumber(readings[0].temperature) + ' °C' : '--' }}
+            </strong>
+            <span>Última lectura recibida</span>
+          </div>
+
+          <div class="chart-area" *ngIf="chartReadings.length > 0; else emptyChart">
+            <div class="chart-y-labels">
+              <span>40°</span>
+              <span>30°</span>
+              <span>20°</span>
+              <span>10°</span>
+              <span>0°</span>
+            </div>
+            <div class="chart-plot">
+              <div class="chart-grid-line line-one"></div>
+              <div class="chart-grid-line line-two"></div>
+              <div class="chart-grid-line line-three"></div>
+              <div class="chart-grid-line line-four"></div>
+
+              <div class="bars">
+                <div class="bar-column" *ngFor="let reading of chartReadings; let i = index">
+                  <div class="bar-value">{{ formatNumber(reading.temperature) }}°</div>
+                  <div class="bar-track">
+                    <div class="bar-fill"
+                      [style.height.%]="Math.min(100, (reading.temperature / 40) * 100)"
+                      [class.bar-hot]="reading.temperature >= 35">
+                    </div>
+                  </div>
+                  <span class="bar-label">{{ i + 1 }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <ng-template #emptyChart>
+            <div class="empty-state">
+              <span>⌁</span>
+              <strong>Aún no hay mediciones</strong>
+              <p>Cuando lleguen lecturas, aparecerán aquí.</p>
+            </div>
+          </ng-template>
+
+          <div class="chart-footer">
+            <span>Fuente: lecturas registradas en la base de datos</span>
+            <span class="chart-footer-mark">AGROCONNECT / DATA</span>
+          </div>
+        </section>
+
+        <section class="panel alerts-panel" id="alerts">
+          <div class="panel-header">
+            <div>
+              <div class="panel-kicker">CENTRO DE NOTIFICACIONES</div>
+              <h2>Alertas agrícolas</h2>
+              <p>Eventos detectados por el sistema</p>
+            </div>
+            <div class="alert-total">{{ stats.total_alerts }}</div>
+          </div>
+
+          <div class="alert-summary">
+            <div class="alert-summary-icon">!</div>
+            <div>
+              <strong>{{ stats.critical_alerts }} alertas de nivel alto</strong>
+              <span>Requieren revisión prioritaria</span>
+            </div>
+          </div>
+
+          <div class="alert-list" *ngIf="alerts.length > 0; else emptyAlerts">
+            <article class="alert-item" *ngFor="let alert of alerts; trackBy: trackByAlert">
+              <div class="alert-severity-bar" [ngClass]="getSeverityClass(alert.severity)"></div>
+              <div class="alert-item-content">
+                <div class="alert-title-row">
+                  <strong>{{ getAlertLabel(alert.alert_type) }}</strong>
+                  <span class="severity-pill" [ngClass]="getSeverityClass(alert.severity)">
+                    {{ getSeverityLabel(alert.severity) }}
+                  </span>
+                </div>
+                <p>{{ alert.message }}</p>
+                <div class="alert-meta">
+                  <span>{{ alert.sensor_id }}</span>
+                  <span>{{ formatDate(alert.created_at) }}</span>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <ng-template #emptyAlerts>
+            <div class="empty-state compact-empty">
+              <span>✓</span>
+              <strong>No hay alertas registradas</strong>
+              <p>El sistema no tiene eventos que mostrar.</p>
+            </div>
+          </ng-template>
+        </section>
+      </div>
+
+      <section class="panel readings-panel" id="readings">
+        <div class="panel-header readings-header">
+          <div>
+            <div class="panel-kicker">TELEMETRÍA AGRÍCOLA</div>
+            <h2>Lecturas recientes</h2>
+            <p>Últimas mediciones almacenadas en PostgreSQL</p>
+          </div>
+          <span class="records-badge">{{ readings.length }} registros visibles</span>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>SENSOR / CULTIVO</th>
+                <th>HUMEDAD DEL SUELO</th>
+                <th>TEMPERATURA</th>
+                <th>HUMEDAD DEL AIRE</th>
+                <th>ALERTAS</th>
+                <th>FECHA</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let reading of readings; trackBy: trackByReading">
+                <td>
+                  <div class="sensor-cell">
+                    <div class="sensor-avatar">⌁</div>
+                    <div>
+                      <strong>{{ reading.sensor_id }}</strong>
+                      <span>{{ reading.crop_id }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="measurement-cell">
+                    <strong>{{ formatNumber(reading.soil_moisture) }}%</strong>
+                    <span class="measurement-status" [ngClass]="getMoistureClass(reading.soil_moisture)">
+                      {{ reading.soil_moisture < 30 ? 'Baja' : (reading.soil_moisture > 70 ? 'Alta' : 'Normal') }}
+                    </span>
+                  </div>
+                </td>
+                <td><strong>{{ formatNumber(reading.temperature) }} °C</strong></td>
+                <td><strong>{{ formatNumber(reading.air_humidity) }}%</strong></td>
+                <td>
+                  <span class="table-alert-count" [class.has-alerts]="reading.alert_count > 0">
+                    {{ reading.alert_count }}
+                  </span>
+                </td>
+                <td class="date-cell">{{ formatDate(reading.recorded_at || reading.created_at) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="empty-table" *ngIf="!loading && readings.length === 0">
+          <span>⌁</span>
+          <strong>No hay lecturas disponibles</strong>
+          <p>Envía una medición desde el cliente gRPC para comenzar.</p>
+        </div>
+
+        <div class="table-footer">
+          <span><span class="mini-dot green-dot"></span> Datos consultados en tiempo real al actualizar</span>
+          <span>AGROCONNECT <strong>·</strong> SISTEMA DE MONITOREO</span>
+        </div>
+      </section>
+
+      <footer class="page-footer">
+        <div class="footer-brand"><span class="footer-mark">A+</span> AgroConnect</div>
+        <span>Monitoreo inteligente para una agricultura más eficiente.</span>
+        <span>© 2026 AgroConnect</span>
+      </footer>
+    </section>
+  </main>
+</div>

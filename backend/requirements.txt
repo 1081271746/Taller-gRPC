@@ -1,0 +1,8 @@
+
+fastapi
+uvicorn[standard]
+grpcio
+grpcio-tools
+protobuf
+psycopg[binary]
+python-dotenv
